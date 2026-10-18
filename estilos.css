@@ -7,8 +7,63 @@ body {
 }
 header { padding: 10px 16px; background: #1e3a5f; color: white; }
 h1 { margin: 0 0 8px; font-size: 1.3rem; }
+h2 { margin: 0 0 8px; font-size: 1rem; color: #1e3a5f; }
 .controles { display: flex; flex-wrap: wrap; gap: 8px; }
 button { padding: 6px 12px; border: none; border-radius: 4px; cursor: pointer; }
 button:disabled { opacity: .5; cursor: not-allowed; }
 #info { margin: 8px 0 0; font-size: .9rem; }
-#mapa { flex: 1; }
+
+.contenedor-principal {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+}
+#mapa { flex: 1; min-width: 0; }
+
+.panel-lateral {
+  width: 280px;
+  background: #f8f9fa;
+  border-left: 1px solid #dee2e6;
+  padding: 12px 16px;
+  overflow-y: auto;
+  flex-shrink: 0;
+}
+
+.tabla-contenedor {
+  overflow-x: auto;
+}
+#tablaVertices {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: .85rem;
+}
+#tablaVertices th,
+#tablaVertices td {
+  padding: 6px 8px;
+  text-align: right;
+  border-bottom: 1px solid #dee2e6;
+}
+#tablaVertices th {
+  background: #e9ecef;
+  color: #495057;
+  font-weight: 600;
+  position: sticky;
+  top: 0;
+}
+#tablaVertices td:first-child,
+#tablaVertices th:first-child {
+  text-align: center;
+  font-weight: 500;
+}
+#tablaVertices tr:hover td {
+  background: #e9ecef;
+}
+
+.mensaje-vacio {
+  text-align: center;
+  color: #6c757d;
+  font-size: .9rem;
+  padding: 20px;
+  margin: 0;
+}
+.mensaje-vacio.oculto { display: none; }

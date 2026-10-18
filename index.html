@@ -19,7 +19,25 @@
     </div>
     <p id="info">Haz clic en el mapa para agregar vértices.</p>
   </header>
-  <div id="mapa"></div>
+  <div class="contenedor-principal">
+    <div id="mapa"></div>
+    <section id="panel-tabla" class="panel-lateral">
+      <h2>Vértices</h2>
+      <div class="tabla-contenedor">
+        <table id="tablaVertices">
+          <thead>
+            <tr>
+              <th>Vértice</th>
+              <th>Latitud</th>
+              <th>Longitud</th>
+            </tr>
+          </thead>
+          <tbody id="tbodyVertices"></tbody>
+        </table>
+      </div>
+      <p id="sinVertices" class="mensaje-vacio">No hay vértices. Haz clic en el mapa para empezar.</p>
+    </section>
+  </div>
 
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@turf/turf@7/turf.min.js"></script>

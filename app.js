@@ -79,6 +79,7 @@ mapa.on('click', (e) => {
   }
   
   actualizarBotones();
+  actualizarTablaVertices(); // Reto #1
   if (!tieneAutointerseccion() || puntos.length < 4) {
     mostrarInfo(`${puntos.length} vértice(s). Necesitas al menos 3 para cerrar.`);
   }
@@ -88,6 +89,33 @@ function actualizarBotones() {
   document.getElementById('btnCerrar').disabled = puntos.length < 3 || poligono !== null;
   document.getElementById('btnDeshacer').disabled = puntos.length === 0 || poligono !== null;
   document.getElementById('btnExportar').disabled = poligono === null;
+}
+
+// Reto #1: Actualizar tabla de vértices con 6 decimales
+function actualizarTablaVertices() {
+  const tbody = document.getElementById('tbodyVertices');
+  const mensajeVacio = document.getElementById('sinVertices');
+  
+  if (!tbody) return;
+  
+  tbody.innerHTML = '';
+  
+  if (puntos.length === 0) {
+    if (mensajeVacio) mensajeVacio.classList.remove('oculto');
+    return;
+  }
+  
+  if (mensajeVacio) mensajeVacio.classList.add('oculto');
+  
+  puntos.forEach(([lat, lng], i) => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td>${i + 1}</td>
+      <td>${lat.toFixed(6)}</td>
+      <td>${lng.toFixed(6)}</td>
+    `;
+    tbody.appendChild(tr);
+  });
 }
 
 // Reto #9: Auto-intersección con turf.kinks (ya existe en main)
@@ -197,6 +225,7 @@ function deshacerPunto() {
   // Reto #9: resetear color línea guía (ya existe)
   lineaGuia.setStyle({ color: '#e67e22' });
   actualizarBotones();
+  actualizarTablaVertices(); // Reto #1
   mostrarInfo(`${puntos.length} vértice(s).`);
 }
 
@@ -214,6 +243,7 @@ function limpiar() {
   localStorage.removeItem('poligonoGuardado');
   nombrePoligono = 'Mi polígono';
   actualizarBotones();
+  actualizarTablaVertices(); // Reto #1
   mostrarInfo('Mapa limpio. Haz clic para empezar de nuevo.');
 }
 
@@ -264,6 +294,7 @@ function cargarDeLocalStorage() {
 
 // Cargar al iniciar
 cargarDeLocalStorage();
+actualizarTablaVertices(); // Reto #1: actualizar tabla al cargar
 
 function exportar() {
   const texto = JSON.stringify(aGeoJSON(), null, 2);
