@@ -33,6 +33,8 @@ function ubicarUsuario() {
       circuloPrecision = L.circle(punto, { radius: accuracy, fillOpacity: 0.1 }).addTo(mapa);
       mapa.setView(punto, 17);
       mostrarInfo(`Ubicación encontrada (precisión: ${Math.round(accuracy)} m). Haz clic para dibujar.`);
+      // Reto #7: comprobar dentro/fuera al ubicar
+      if (poligono) comprobarDentroFuera(punto);
     },
     (err) => {
       const mensajes = {
@@ -64,8 +66,22 @@ mapa.on('click', (e) => {
   vertices.push(v);
 
   lineaGuia.setLatLngs(puntos);
+  
+  // Reto #9: Comprobar auto-intersección en tiempo real
+  if (puntos.length >= 4) {
+    const kinks = tieneAutointerseccion();
+    if (kinks) {
+      lineaGuia.setStyle({ color: '#e74c3c' });
+      mostrarInfo(`⚠️ Auto-intersección detectada (${kinks.features.length}). El área será incorrecta.`);
+    } else {
+      lineaGuia.setStyle({ color: '#e67e22' });
+    }
+  }
+  
   actualizarBotones();
-  mostrarInfo(`${puntos.length} vértice(s). Necesitas al menos 3 para cerrar.`);
+  if (!tieneAutointerseccion() || puntos.length < 4) {
+    mostrarInfo(`${puntos.length} vértice(s). Necesitas al menos 3 para cerrar.`);
+  }
 });
 
 function actualizarBotones() {
@@ -74,10 +90,41 @@ function actualizarBotones() {
   document.getElementById('btnExportar').disabled = poligono === null;
 }
 
+// Reto #9: Auto-intersección con turf.kinks
+function tieneAutointerseccion() {
+  if (puntos.length < 4) return null;
+  const geo = aGeoJSON();
+  const kinks = turf.kinks(geo);
+  return kinks.features.length > 0 ? kinks : null;
+}
+
+// Reto #3: Nombre del polígono en propiedades GeoJSON
+let nombrePoligono = 'Mi polígono';
+function pedirNombre() {
+  const nombre = prompt('Nombre del polígono:', nombrePoligono);
+  if (nombre && nombre.trim()) {
+    nombrePoligono = nombre.trim();
+    if (poligono) {
+      // Actualizar popup si ya existe
+      const geo = aGeoJSON();
+      const { area, perimetro } = medir();
+      poligono.bindPopup(`<strong>${nombrePoligono}</strong><br>Área: ${area.toFixed(1)} m²<br>Perímetro: ${perimetro.toFixed(1)} m`).openPopup();
+    }
+    mostrarInfo(`Nombre guardado: ${nombrePoligono}`);
+  }
+}
+document.getElementById('btnCerrar').addEventListener('click', () => {
+  if (!poligono) pedirNombre();
+});
+
+// Reto #3: aGeoJSON incluye nombre
 function aGeoJSON() {
   const anillo = puntos.map(([lat, lng]) => [lng, lat]);
   anillo.push(anillo[0]); // cerrar el anillo
-  return turf.polygon([anillo], { nombre: 'Mi polígono', creado: new Date().toISOString() });
+  return turf.polygon([anillo], { 
+    nombre: nombrePoligono, 
+    creado: new Date().toISOString() 
+  });
 }
 
 function medir() {
@@ -87,14 +134,44 @@ function medir() {
   return { area, perimetro };
 }
 
+// Reto #7: Comprobar si usuario está dentro/fuera del polígono
+function comprobarDentroFuera(puntoUsuario) {
+  if (!poligono) return;
+  const geo = aGeoJSON();
+  const point = turf.point([puntoUsuario[1], puntoUsuario[0]]); // [lng, lat]
+  const dentro = turf.booleanPointInPolygon(point, geo);
+  const estado = dentro ? 'DENTRO ✅' : 'FUERA ❌';
+  const color = dentro ? '#27ae60' : '#e74c3c';
+  mostrarInfo(`Tu ubicación está ${estado} del polígono "${nombrePoligono}".`);
+  // Cambiar color del marcador temporalmente
+  if (marcadorUsuario) {
+    const icono = L.divIcon({ className: 'custom-marker', html: `<div style="background:${color};width:12px;height:12px;border-radius:50%;border:2px solid white;"></div>`, iconSize: [12, 12] });
+    marcadorUsuario.setIcon(icono);
+  }
+}
+
 function cerrarPoligono() {
+  // Reto #9: bloquear si hay auto-intersección
+  const kinks = tieneAutointerseccion();
+  if (kinks) {
+    mostrarInfo(`⚠️ El polígono se cruza consigo mismo (${kinks.features.length} intersección(es)). El área y perímetro serán incorrectos. Corrige los vértices.`);
+    lineaGuia.setStyle({ color: '#e74c3c' });
+    return;
+  }
+
+  // Reto #3: pedir nombre antes de cerrar (si no se pidió ya)
+  if (nombrePoligono === 'Mi polígono') pedirNombre();
+
   poligono = L.polygon(puntos, { color: '#27ae60', fillOpacity: 0.35 }).addTo(mapa);
   lineaGuia.setLatLngs([]);
   mapa.fitBounds(poligono.getBounds());
 
   const { area, perimetro } = medir();
-  poligono.bindPopup(`Área: ${area.toFixed(1)} m²<br>Perímetro: ${perimetro.toFixed(1)} m`).openPopup();
+  poligono.bindPopup(`<strong>${nombrePoligono}</strong><br>Área: ${area.toFixed(1)} m²<br>Perímetro: ${perimetro.toFixed(1)} m`).openPopup();
   mostrarInfo(`Polígono cerrado. Área: ${area.toFixed(1)} m² (${(area / 10000).toFixed(3)} ha).`);
+  
+  // Reto #5: guardar en localStorage al cerrar
+  guardarEnLocalStorage();
   actualizarBotones();
 }
 
@@ -104,6 +181,8 @@ function deshacerPunto() {
   puntos.pop();
   mapa.removeLayer(vertices.pop());
   lineaGuia.setLatLngs(puntos);
+  // Reto #9: resetear color línea guía
+  lineaGuia.setStyle({ color: '#e67e22' });
   actualizarBotones();
   mostrarInfo(`${puntos.length} vértice(s).`);
 }
@@ -113,16 +192,65 @@ function limpiar() {
   vertices.forEach((v) => mapa.removeLayer(v));
   vertices = [];
   lineaGuia.setLatLngs([]);
+  lineaGuia.setStyle({ color: '#e67e22' });
   if (poligono) {
     mapa.removeLayer(poligono);
     poligono = null;
   }
+  // Reto #5: limpiar localStorage
+  localStorage.removeItem('poligonoGuardado');
+  nombrePoligono = 'Mi polígono';
   actualizarBotones();
   mostrarInfo('Mapa limpio. Haz clic para empezar de nuevo.');
 }
 
 document.getElementById('btnDeshacer').addEventListener('click', deshacerPunto);
 document.getElementById('btnLimpiar').addEventListener('click', limpiar);
+
+// Reto #5: Guardar y recuperar de localStorage
+function guardarEnLocalStorage() {
+  const datos = {
+    puntos: puntos,
+    nombre: nombrePoligono,
+    timestamp: new Date().toISOString()
+  };
+  localStorage.setItem('poligonoGuardado', JSON.stringify(datos));
+}
+
+function cargarDeLocalStorage() {
+  const guardado = localStorage.getItem('poligonoGuardado');
+  if (!guardado) return false;
+  try {
+    const datos = JSON.parse(guardado);
+    if (!Array.isArray(datos.puntos) || datos.puntos.length < 3) return false;
+    puntos = datos.puntos;
+    nombrePoligono = datos.nombre || 'Mi polígono';
+    
+    // Recrear vértices visibles
+    puntos.forEach(([lat, lng]) => {
+      const v = L.circleMarker([lat, lng], { radius: 6, color: '#e67e22', fillOpacity: 1 }).addTo(mapa);
+      vertices.push(v);
+    });
+    lineaGuia.setLatLngs(puntos);
+    
+    // Cerrar polígono automáticamente
+    poligono = L.polygon(puntos, { color: '#27ae60', fillOpacity: 0.35 }).addTo(mapa);
+    mapa.fitBounds(poligono.getBounds());
+    
+    const { area, perimetro } = medir();
+    poligono.bindPopup(`<strong>${nombrePoligono}</strong><br>Área: ${area.toFixed(1)} m²<br>Perímetro: ${perimetro.toFixed(1)} m`).openPopup();
+    mostrarInfo(`Polígono "${nombrePoligono}" recuperado (${puntos.length} vértices). Área: ${area.toFixed(1)} m².`);
+    actualizarBotones();
+    return true;
+  } catch (e) {
+    console.error('Error al cargar localStorage:', e);
+    localStorage.removeItem('poligonoGuardado');
+    return false;
+  }
+}
+
+// Cargar al iniciar
+cargarDeLocalStorage();
 
 function exportar() {
   const texto = JSON.stringify(aGeoJSON(), null, 2);
