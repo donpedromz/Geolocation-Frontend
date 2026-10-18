@@ -64,8 +64,22 @@ mapa.on('click', (e) => {
   vertices.push(v);
 
   lineaGuia.setLatLngs(puntos);
+  
+  // Comprobar auto-intersección en tiempo real
+  if (puntos.length >= 4) {
+    const kinks = tieneAutointerseccion();
+    if (kinks) {
+      lineaGuia.setStyle({ color: '#e74c3c' });
+      mostrarInfo(`⚠️ Auto-intersección detectada (${kinks.features.length}). El área será incorrecta.`);
+    } else {
+      lineaGuia.setStyle({ color: '#e67e22' });
+    }
+  }
+  
   actualizarBotones();
-  mostrarInfo(`${puntos.length} vértice(s). Necesitas al menos 3 para cerrar.`);
+  if (!tieneAutointerseccion() || puntos.length < 4) {
+    mostrarInfo(`${puntos.length} vértice(s). Necesitas al menos 3 para cerrar.`);
+  }
 });
 
 function actualizarBotones() {
@@ -87,7 +101,21 @@ function medir() {
   return { area, perimetro };
 }
 
+function tieneAutointerseccion() {
+  const geo = aGeoJSON();
+  const kinks = turf.kinks(geo);
+  return kinks.features.length > 0 ? kinks : null;
+}
+
 function cerrarPoligono() {
+  const kinks = tieneAutointerseccion();
+  if (kinks) {
+    mostrarInfo(`⚠️ El polígono se cruza consigo mismo (${kinks.features.length} intersección(es)). El área y perímetro serán incorrectos. Corrige los vértices.`);
+    // Resaltar visualmente la línea guía en rojo
+    lineaGuia.setStyle({ color: '#e74c3c' });
+    return; // No cierra hasta que se corrija
+  }
+
   poligono = L.polygon(puntos, { color: '#27ae60', fillOpacity: 0.35 }).addTo(mapa);
   lineaGuia.setLatLngs([]);
   mapa.fitBounds(poligono.getBounds());
@@ -104,6 +132,8 @@ function deshacerPunto() {
   puntos.pop();
   mapa.removeLayer(vertices.pop());
   lineaGuia.setLatLngs(puntos);
+  // Resetear color de la línea guía
+  lineaGuia.setStyle({ color: '#e67e22' });
   actualizarBotones();
   mostrarInfo(`${puntos.length} vértice(s).`);
 }
@@ -113,6 +143,7 @@ function limpiar() {
   vertices.forEach((v) => mapa.removeLayer(v));
   vertices = [];
   lineaGuia.setLatLngs([]);
+  lineaGuia.setStyle({ color: '#e67e22' });
   if (poligono) {
     mapa.removeLayer(poligono);
     poligono = null;
