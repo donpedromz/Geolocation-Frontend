@@ -51,6 +51,20 @@ button:disabled { opacity: .5; cursor: not-allowed; }
   color: #c6f6d5;
 }
 
+/* divIcon propio: el nombre de clase sustituye la caja blanca que Leaflet pinta por defecto. */
+.marcador-usuario {
+  background: none;
+  border: none;
+}
+.punto-usuario {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  border: 2px solid white;
+}
+.punto-usuario.dentro { background: #27ae60; }
+.punto-usuario.fuera { background: #e74c3c; }
+
 .contenedor-principal {
   display: flex;
   flex: 1;

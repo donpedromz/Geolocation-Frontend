@@ -245,11 +245,10 @@ function comprobarDentroFuera(puntoUsuario) {
   const point = turf.point([puntoUsuario[1], puntoUsuario[0]]); // [lng, lat]
   const dentro = turf.booleanPointInPolygon(point, geo);
   const estado = dentro ? 'DENTRO' : 'FUERA';
-  const color = dentro ? '#27ae60' : '#e74c3c';
   mostrarInfo(`Tu ubicación está ${estado} del polígono "${nombrePoligono}".`);
-  // Cambiar color del marcador temporalmente
+  // El color del punto lo decide el CSS según el lado en el que esté.
   if (marcadorUsuario) {
-    const icono = L.divIcon({ className: 'custom-marker', html: `<div style="background:${color};width:12px;height:12px;border-radius:50%;border:2px solid white;"></div>`, iconSize: [12, 12] });
+    const icono = L.divIcon({ className: 'marcador-usuario', html: `<div class="punto-usuario ${dentro ? 'dentro' : 'fuera'}"></div>`, iconSize: [12, 12] });
     marcadorUsuario.setIcon(icono);
   }
 }
