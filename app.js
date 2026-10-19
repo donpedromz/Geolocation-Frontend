@@ -9,6 +9,7 @@ L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
 
 let marcadorUsuario = null;
 let circuloPrecision = null;
+let vigilancia = null; // id del watchPosition activo (null = sin rastreo)
 
 function mostrarInfo(texto) {
   document.getElementById('info').textContent = texto;
@@ -55,6 +56,45 @@ function ubicarUsuario() {
 
 document.getElementById('btnUbicar').addEventListener('click', ubicarUsuario);
 ubicarUsuario();
+
+// Reto #8: Rastrear la ubicación en tiempo real
+function alternarRastreo() {
+  const boton = document.getElementById('btnRastrear');
+
+  if (vigilancia !== null) {
+    navigator.geolocation.clearWatch(vigilancia);
+    vigilancia = null;
+    boton.textContent = 'Rastrear ubicación';
+    mostrarInfo('Rastreo detenido.');
+    return;
+  }
+
+  if (!('geolocation' in navigator)) {
+    mostrarInfo('Tu navegador no soporta geolocalización.');
+    return;
+  }
+
+  vigilancia = navigator.geolocation.watchPosition(
+    (pos) => {
+      const { latitude, longitude, accuracy } = pos.coords;
+      const punto = [latitude, longitude];
+
+      pintarUbicacion(punto, accuracy);
+      if (poligono) {
+        comprobarDentroFuera(punto);
+      } else {
+        mostrarInfo(`Rastreando… (precisión: ${Math.round(accuracy)} m). Cierra un polígono para activar la geocerca.`);
+      }
+    },
+    () => mostrarInfo('No se pudo obtener tu ubicación. Revisa el permiso e inténtalo de nuevo.'),
+    { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+  );
+
+  boton.textContent = 'Detener rastreo';
+  mostrarInfo('Rastreando tu ubicación…');
+}
+
+document.getElementById('btnRastrear').addEventListener('click', alternarRastreo);
 
 let puntos = [];     // array de [lat, lng]
 let vertices = [];   // marcadores visibles de cada vértice
