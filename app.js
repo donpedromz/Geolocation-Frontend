@@ -27,7 +27,7 @@ function pintarUbicacion(punto, accuracy) {
 
 function ubicarUsuario() {
   if (!('geolocation' in navigator)) {
-    mostrarInfo('Tu navegador no soporta geolocalización.');
+    mostrarInfo('Tu navegador no soporta geolocalización.', 'aviso');
     return;
   }
   mostrarInfo('Buscando tu ubicación...');
@@ -50,7 +50,7 @@ function ubicarUsuario() {
         2: 'No se pudo determinar la ubicación.',
         3: 'Se agotó el tiempo de espera.'
       };
-      mostrarInfo(mensajes[err.code] || 'Error desconocido.');
+      mostrarInfo(mensajes[err.code] || 'Error desconocido.', 'aviso');
     },
     { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
   );
@@ -72,7 +72,7 @@ function alternarRastreo() {
   }
 
   if (!('geolocation' in navigator)) {
-    mostrarInfo('Tu navegador no soporta geolocalización.');
+    mostrarInfo('Tu navegador no soporta geolocalización.', 'aviso');
     return;
   }
 
@@ -89,7 +89,7 @@ function alternarRastreo() {
         mostrarInfo(`Rastreando… (precisión: ${Math.round(accuracy)} m). Cierra un polígono para activar la geocerca.`);
       }
     },
-    () => mostrarInfo('No se pudo obtener tu ubicación. Revisa el permiso e inténtalo de nuevo.'),
+    () => mostrarInfo('No se pudo obtener tu ubicación. Revisa el permiso e inténtalo de nuevo.', 'aviso'),
     { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
   );
 
@@ -124,7 +124,7 @@ function agregarVertice(lat, lng) {
     const kinks = tieneAutointerseccion();
     if (kinks) {
       lineaGuia.setStyle({ color: '#e74c3c' });
-      mostrarInfo(`⚠️ Auto-intersección detectada (${kinks.features.length}). El área será incorrecta.`);
+      mostrarInfo(`Auto-intersección detectada (${kinks.features.length}). El área será incorrecta.`, 'aviso');
     } else {
       lineaGuia.setStyle({ color: '#e67e22' });
     }
@@ -140,7 +140,7 @@ function agregarVertice(lat, lng) {
 // Reto #4: Agregar un vértice con la ubicación actual
 function agregarPuntoGPS() {
   if (!('geolocation' in navigator)) {
-    mostrarInfo('Tu navegador no soporta geolocalización.');
+    mostrarInfo('Tu navegador no soporta geolocalización.', 'aviso');
     return;
   }
   mostrarInfo('Buscando tu ubicación para agregar el vértice...');
@@ -154,7 +154,7 @@ function agregarPuntoGPS() {
         mostrarInfo(`Vértice agregado desde tu ubicación (precisión: ${Math.round(accuracy)} m).`);
       }
     },
-    () => mostrarInfo('No se pudo obtener tu ubicación. Revisa el permiso e inténtalo de nuevo.'),
+    () => mostrarInfo('No se pudo obtener tu ubicación. Revisa el permiso e inténtalo de nuevo.', 'aviso'),
     { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
   );
 }
@@ -244,7 +244,7 @@ function comprobarDentroFuera(puntoUsuario) {
   const geo = aGeoJSON();
   const point = turf.point([puntoUsuario[1], puntoUsuario[0]]); // [lng, lat]
   const dentro = turf.booleanPointInPolygon(point, geo);
-  const estado = dentro ? 'DENTRO ✅' : 'FUERA ❌';
+  const estado = dentro ? 'DENTRO' : 'FUERA';
   const color = dentro ? '#27ae60' : '#e74c3c';
   mostrarInfo(`Tu ubicación está ${estado} del polígono "${nombrePoligono}".`);
   // Cambiar color del marcador temporalmente
@@ -279,7 +279,7 @@ function cerrarPoligono() {
   // Reto #9: bloquear si hay auto-intersección (ya existe)
   const kinks = tieneAutointerseccion();
   if (kinks) {
-    mostrarInfo(`⚠️ El polígono se cruza consigo mismo (${kinks.features.length} intersección(es)). El área y perímetro serán incorrectos. Corrige los vértices.`);
+    mostrarInfo(`El polígono se cruza consigo mismo (${kinks.features.length} intersección(es)). El área y perímetro serán incorrectos. Corrige los vértices.`, 'aviso');
     lineaGuia.setStyle({ color: '#e74c3c' });
     return;
   }
@@ -423,13 +423,13 @@ function importarGeoJSON(archivo) {
     try {
       formas = L.geoJSON(JSON.parse(lector.result)).getLayers();
     } catch (e) {
-      mostrarInfo(`No se pudo importar "${archivo.name}": no es un GeoJSON válido.`);
+      mostrarInfo(`No se pudo importar "${archivo.name}": no es un GeoJSON válido.`, 'aviso');
       return;
     }
 
     const forma = formas[0];
     if (!(forma instanceof L.Polygon)) {
-      mostrarInfo(`No se pudo importar "${archivo.name}": no contiene ningún polígono.`);
+      mostrarInfo(`No se pudo importar "${archivo.name}": no contiene ningún polígono.`, 'aviso');
       return;
     }
 
@@ -439,7 +439,7 @@ function importarGeoJSON(archivo) {
     // El anillo de un GeoJSON repite el primer punto al final.
     if (anillo.length > 3 && primero[0] === ultimo[0] && primero[1] === ultimo[1]) anillo.pop();
     if (anillo.length < 3) {
-      mostrarInfo(`No se pudo importar "${archivo.name}": necesita al menos 3 vértices.`);
+      mostrarInfo(`No se pudo importar "${archivo.name}": necesita al menos 3 vértices.`, 'aviso');
       return;
     }
 
@@ -450,7 +450,7 @@ function importarGeoJSON(archivo) {
     cerrarPoligono();
   };
 
-  lector.onerror = () => mostrarInfo(`No se pudo leer el archivo "${archivo.name}".`);
+  lector.onerror = () => mostrarInfo(`No se pudo leer el archivo "${archivo.name}".`, 'aviso');
   lector.readAsText(archivo);
 }
 
