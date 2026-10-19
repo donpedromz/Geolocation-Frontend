@@ -1,5 +1,6 @@
 const CENTRO_INICIAL = [5.0689, -75.5174]; // Manizales, por si falla la ubicación
 const COLORES = { guia: '#e67e22', error: '#e74c3c' };
+const OPCIONES_UBICACION = { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 };
 
 const mapa = L.map('mapa').setView(CENTRO_INICIAL, 15);
 
@@ -26,35 +27,39 @@ function pintarUbicacion(punto, accuracy) {
   circuloPrecision = L.circle(punto, { radius: accuracy, fillOpacity: 0.1 }).addTo(mapa);
 }
 
-function ubicarUsuario() {
+// La geolocalización solo ofrece callbacks; la envolvemos para poder usar await.
+function pedirUbicacion() {
+  return new Promise((resolve, reject) => {
+    navigator.geolocation.getCurrentPosition(resolve, reject, OPCIONES_UBICACION);
+  });
+}
+
+async function ubicarUsuario() {
   if (!('geolocation' in navigator)) {
     mostrarInfo('Tu navegador no soporta geolocalización.', 'aviso');
     return;
   }
   mostrarInfo('Buscando tu ubicación...');
 
-  navigator.geolocation.getCurrentPosition(
-    (pos) => {
-      const { latitude, longitude, accuracy } = pos.coords;
-      const punto = [latitude, longitude];
+  try {
+    const pos = await pedirUbicacion();
+    const { latitude, longitude, accuracy } = pos.coords;
+    const punto = [latitude, longitude];
 
-      pintarUbicacion(punto, accuracy);
-      marcadorUsuario.openPopup();
-      mapa.setView(punto, 17);
-      mostrarInfo(`Ubicación encontrada (precisión: ${Math.round(accuracy)} m). Haz clic para dibujar.`);
-      // Reto #7: comprobar dentro/fuera al ubicar
-      if (poligono) comprobarDentroFuera(punto);
-    },
-    (err) => {
-      const mensajes = {
-        1: 'Permiso denegado. Activa la ubicación en el navegador.',
-        2: 'No se pudo determinar la ubicación.',
-        3: 'Se agotó el tiempo de espera.'
-      };
-      mostrarInfo(mensajes[err.code] || 'Error desconocido.', 'aviso');
-    },
-    { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
-  );
+    pintarUbicacion(punto, accuracy);
+    marcadorUsuario.openPopup();
+    mapa.setView(punto, 17);
+    mostrarInfo(`Ubicación encontrada (precisión: ${Math.round(accuracy)} m). Haz clic para dibujar.`);
+    // Reto #7: comprobar dentro/fuera al ubicar
+    if (poligono) comprobarDentroFuera(punto);
+  } catch (err) {
+    const mensajes = {
+      1: 'Permiso denegado. Activa la ubicación en el navegador.',
+      2: 'No se pudo determinar la ubicación.',
+      3: 'Se agotó el tiempo de espera.'
+    };
+    mostrarInfo(mensajes[err.code] || 'Error desconocido.', 'aviso');
+  }
 }
 
 document.getElementById('btnUbicar').addEventListener('click', ubicarUsuario);
@@ -91,7 +96,7 @@ function alternarRastreo() {
       }
     },
     () => mostrarInfo('No se pudo obtener tu ubicación. Revisa el permiso e inténtalo de nuevo.', 'aviso'),
-    { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+    OPCIONES_UBICACION
   );
 
   boton.textContent = 'Detener rastreo';
@@ -139,25 +144,24 @@ function agregarVertice(lat, lng) {
 }
 
 // Reto #4: Agregar un vértice con la ubicación actual
-function agregarPuntoGPS() {
+async function agregarPuntoGPS() {
   if (!('geolocation' in navigator)) {
     mostrarInfo('Tu navegador no soporta geolocalización.', 'aviso');
     return;
   }
   mostrarInfo('Buscando tu ubicación para agregar el vértice...');
 
-  navigator.geolocation.getCurrentPosition(
-    (pos) => {
-      const { latitude, longitude, accuracy } = pos.coords;
-      agregarVertice(latitude, longitude);
-      // El aviso de auto-intersección importa más que el dato de precisión.
-      if (!tieneAutointerseccion()) {
-        mostrarInfo(`Vértice agregado desde tu ubicación (precisión: ${Math.round(accuracy)} m).`);
-      }
-    },
-    () => mostrarInfo('No se pudo obtener tu ubicación. Revisa el permiso e inténtalo de nuevo.', 'aviso'),
-    { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
-  );
+  try {
+    const pos = await pedirUbicacion();
+    const { latitude, longitude, accuracy } = pos.coords;
+    agregarVertice(latitude, longitude);
+    // El aviso de auto-intersección importa más que el dato de precisión.
+    if (!tieneAutointerseccion()) {
+      mostrarInfo(`Vértice agregado desde tu ubicación (precisión: ${Math.round(accuracy)} m).`);
+    }
+  } catch {
+    mostrarInfo('No se pudo obtener tu ubicación. Revisa el permiso e inténtalo de nuevo.', 'aviso');
+  }
 }
 
 document.getElementById('btnPuntoGPS').addEventListener('click', agregarPuntoGPS);
