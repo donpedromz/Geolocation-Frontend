@@ -12,6 +12,8 @@ body {
   display: flex;
   flex-direction: column;
   height: 100vh;
+  /* En móvil 100vh cuenta la barra del navegador; dvh mide solo lo que se ve. */
+  height: 100dvh;
 }
 header { padding: 10px 16px; background: var(--color-primario); color: white; }
 h1 { margin: 0 0 8px; font-size: 1.3rem; }
@@ -87,6 +89,25 @@ button:disabled { opacity: .5; cursor: not-allowed; }
   padding: 12px 16px;
   overflow-y: auto;
   flex-shrink: 0;
+}
+
+.panel-lateral.oculto {
+  display: none;
+}
+
+/* En pantallas pequeñas el panel se superpone al mapa en vez de robarle ancho. */
+@media (max-width: 640px) {
+  .contenedor-principal { position: relative; }
+  .panel-lateral {
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    box-sizing: border-box; /* el ancho incluye padding y borde */
+    width: min(85vw, 320px);
+    z-index: 1100; /* por encima de los controles de Leaflet */
+    box-shadow: -6px 0 16px rgba(0, 0, 0, .25);
+  }
 }
 
 .tabla-contenedor {

@@ -20,12 +20,13 @@
       <button id="btnExportar" disabled>Exportar GeoJSON</button>
       <input type="color" id="colorPoligono" value="#27ae60" title="Color del polígono" aria-label="Color del polígono">
       <input type="file" id="archivoGeoJSON" accept=".geojson,.json,application/geo+json" aria-label="Importar archivo GeoJSON">
+      <button id="btnPanel" aria-expanded="true" aria-controls="panelVertices">Ocultar vértices</button>
     </div>
     <p id="info">Haz clic en el mapa para agregar vértices.</p>
   </header>
   <div class="contenedor-principal">
     <div id="mapa"></div>
-    <section class="panel-lateral">
+    <section class="panel-lateral" id="panelVertices">
       <h2>Vértices</h2>
       <div class="tabla-contenedor">
         <table id="tablaVertices">

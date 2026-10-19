@@ -276,6 +276,27 @@ function actualizarTablaVertices() {
 }
 
 /**
+ * Muestra u oculta el panel de vértices. Es una mejora propia de la 1.0.0, no un reto.
+ *
+ * @author Juan Pablo Olave Muñoz (donpedromz)
+ */
+function alternarPanel() {
+  const panel = document.getElementById('panelVertices');
+  const boton = document.getElementById('btnPanel');
+  const oculto = panel.classList.toggle('oculto');
+
+  boton.textContent = oculto ? 'Ver vértices' : 'Ocultar vértices';
+  boton.setAttribute('aria-expanded', String(!oculto));
+  // El mapa gana o pierde el ancho del panel: Leaflet tiene que recalcular su tamaño.
+  requestAnimationFrame(() => mapa.invalidateSize());
+}
+
+document.getElementById('btnPanel').addEventListener('click', alternarPanel);
+
+// En pantallas pequeñas el panel se superpone al mapa: empieza oculto.
+if (window.matchMedia('(max-width: 640px)').matches) alternarPanel();
+
+/**
  * Comprueba con turf.kinks si el trazo se cruza consigo mismo (reto #9).
  *
  * @author Johan Andrés Villada (VilladaV)
