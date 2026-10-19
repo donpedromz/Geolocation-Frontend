@@ -34,6 +34,16 @@ function pedirUbicacion() {
   });
 }
 
+const MENSAJES_ERROR_UBICACION = {
+  1: 'Permiso denegado. Activa la ubicación en el navegador.',
+  2: 'No se pudo determinar la ubicación.',
+  3: 'Se agotó el tiempo de espera.'
+};
+
+function mensajeDeErrorUbicacion(error) {
+  return MENSAJES_ERROR_UBICACION[error.code] || 'Error desconocido.';
+}
+
 async function ubicarUsuario() {
   if (!('geolocation' in navigator)) {
     mostrarInfo('Tu navegador no soporta geolocalización.', 'aviso');
@@ -53,12 +63,7 @@ async function ubicarUsuario() {
     // Reto #7: comprobar dentro/fuera al ubicar
     if (poligono) comprobarDentroFuera(punto);
   } catch (err) {
-    const mensajes = {
-      1: 'Permiso denegado. Activa la ubicación en el navegador.',
-      2: 'No se pudo determinar la ubicación.',
-      3: 'Se agotó el tiempo de espera.'
-    };
-    mostrarInfo(mensajes[err.code] || 'Error desconocido.', 'aviso');
+    mostrarInfo(mensajeDeErrorUbicacion(err), 'aviso');
   }
 }
 
@@ -95,7 +100,7 @@ function alternarRastreo() {
         mostrarInfo(`Rastreando… (precisión: ${Math.round(accuracy)} m). Cierra un polígono para activar la geocerca.`);
       }
     },
-    () => mostrarInfo('No se pudo obtener tu ubicación. Revisa el permiso e inténtalo de nuevo.', 'aviso'),
+    (err) => mostrarInfo(mensajeDeErrorUbicacion(err), 'aviso'),
     OPCIONES_UBICACION
   );
 
@@ -159,8 +164,8 @@ async function agregarPuntoGPS() {
     if (!tieneAutointerseccion()) {
       mostrarInfo(`Vértice agregado desde tu ubicación (precisión: ${Math.round(accuracy)} m).`);
     }
-  } catch {
-    mostrarInfo('No se pudo obtener tu ubicación. Revisa el permiso e inténtalo de nuevo.', 'aviso');
+  } catch (err) {
+    mostrarInfo(mensajeDeErrorUbicacion(err), 'aviso');
   }
 }
 
