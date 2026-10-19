@@ -1,4 +1,5 @@
 const CENTRO_INICIAL = [5.0689, -75.5174]; // Manizales, por si falla la ubicación
+const COLORES = { guia: '#e67e22', error: '#e74c3c' };
 
 const mapa = L.map('mapa').setView(CENTRO_INICIAL, 15);
 
@@ -102,7 +103,7 @@ document.getElementById('btnRastrear').addEventListener('click', alternarRastreo
 let puntos = [];     // array de [lat, lng]
 let vertices = [];   // marcadores visibles de cada vértice
 let poligono = null;
-const lineaGuia = L.polyline([], { color: '#e67e22', dashArray: '6 6' }).addTo(mapa);
+const lineaGuia = L.polyline([], { color: COLORES.guia, dashArray: '6 6' }).addTo(mapa);
 
 mapa.on('click', (e) => {
   const { lat, lng } = e.latlng;
@@ -114,22 +115,22 @@ function agregarVertice(lat, lng) {
 
   puntos.push([lat, lng]);
 
-  const v = L.circleMarker([lat, lng], { radius: 6, color: '#e67e22', fillOpacity: 1 }).addTo(mapa);
+  const v = L.circleMarker([lat, lng], { radius: 6, color: COLORES.guia, fillOpacity: 1 }).addTo(mapa);
   vertices.push(v);
 
   lineaGuia.setLatLngs(puntos);
-  
+
   // Reto #9: Comprobar auto-intersección en tiempo real (ya existe en main)
   if (puntos.length >= 4) {
     const kinks = tieneAutointerseccion();
     if (kinks) {
-      lineaGuia.setStyle({ color: '#e74c3c' });
+      lineaGuia.setStyle({ color: COLORES.error });
       mostrarInfo(`Auto-intersección detectada (${kinks.features.length}). El área será incorrecta.`, 'aviso');
     } else {
-      lineaGuia.setStyle({ color: '#e67e22' });
+      lineaGuia.setStyle({ color: COLORES.guia });
     }
   }
-  
+
   actualizarBotones();
   actualizarTablaVertices(); // Reto #1
   if (!tieneAutointerseccion() || puntos.length < 4) {
@@ -172,18 +173,18 @@ function actualizarBotones() {
 function actualizarTablaVertices() {
   const tbody = document.getElementById('tbodyVertices');
   const mensajeVacio = document.getElementById('sinVertices');
-  
+
   if (!tbody) return;
-  
+
   tbody.innerHTML = '';
-  
+
   if (puntos.length === 0) {
     if (mensajeVacio) mensajeVacio.classList.remove('oculto');
     return;
   }
-  
+
   if (mensajeVacio) mensajeVacio.classList.add('oculto');
-  
+
   puntos.forEach(([lat, lng], i) => {
     const tr = document.createElement('tr');
     tr.innerHTML = `
@@ -225,9 +226,9 @@ const originalCerrarPoligono = cerrarPoligono;
 function aGeoJSON() {
   const anillo = puntos.map(([lat, lng]) => [lng, lat]);
   anillo.push(anillo[0]); // cerrar el anillo
-  return turf.polygon([anillo], { 
-    nombre: nombrePoligono, 
-    creado: new Date().toISOString() 
+  return turf.polygon([anillo], {
+    nombre: nombrePoligono,
+    creado: new Date().toISOString()
   });
 }
 
@@ -279,7 +280,7 @@ function cerrarPoligono() {
   const kinks = tieneAutointerseccion();
   if (kinks) {
     mostrarInfo(`El polígono se cruza consigo mismo (${kinks.features.length} intersección(es)). El área y perímetro serán incorrectos. Corrige los vértices.`, 'aviso');
-    lineaGuia.setStyle({ color: '#e74c3c' });
+    lineaGuia.setStyle({ color: COLORES.error });
     return;
   }
 
@@ -298,11 +299,11 @@ function cerrarPoligono() {
   const { area, perimetro } = medir();
   poligono.bindPopup(`<strong>${nombrePoligono}</strong><br>Área: ${area.toFixed(1)} m²<br>Perímetro: ${perimetro.toFixed(1)} m`).openPopup();
   mostrarInfo(`Polígono cerrado. Área: ${area.toFixed(1)} m² (${(area / 10000).toFixed(3)} ha).`);
-  
+
   // Reto #5: guardar en localStorage al cerrar
   guardarEnLocalStorage();
   actualizarBotones();
-  
+
   // Reto #7: comprobar dentro/fuera tras cerrar
   if (marcadorUsuario) {
     const pos = marcadorUsuario.getLatLng();
@@ -319,7 +320,7 @@ function deshacerPunto() {
   mapa.removeLayer(vertices.pop());
   lineaGuia.setLatLngs(puntos);
   // Reto #9: resetear color línea guía (ya existe)
-  lineaGuia.setStyle({ color: '#e67e22' });
+  lineaGuia.setStyle({ color: COLORES.guia });
   actualizarBotones();
   actualizarTablaVertices(); // Reto #1
   mostrarInfo(`${puntos.length} vértice(s).`);
@@ -330,7 +331,7 @@ function limpiar() {
   vertices.forEach((v) => mapa.removeLayer(v));
   vertices = [];
   lineaGuia.setLatLngs([]);
-  lineaGuia.setStyle({ color: '#e67e22' });
+  lineaGuia.setStyle({ color: COLORES.guia });
   if (poligono) {
     mapa.removeLayer(poligono);
     poligono = null;
@@ -373,18 +374,18 @@ function cargarDeLocalStorage() {
     nombrePoligono = datos.nombre || 'Mi polígono';
     colorPoligono = datos.color || colorPoligono;
     document.getElementById('colorPoligono').value = colorPoligono;
-    
+
     // Recrear vértices visibles
     puntos.forEach(([lat, lng]) => {
-      const v = L.circleMarker([lat, lng], { radius: 6, color: '#e67e22', fillOpacity: 1 }).addTo(mapa);
+      const v = L.circleMarker([lat, lng], { radius: 6, color: COLORES.guia, fillOpacity: 1 }).addTo(mapa);
       vertices.push(v);
     });
     lineaGuia.setLatLngs(puntos);
-    
+
     // Cerrar polígono automáticamente
     poligono = L.polygon(puntos, { color: colorPoligono, fillOpacity: 0.35 }).addTo(mapa);
     mapa.fitBounds(poligono.getBounds());
-    
+
     const { area, perimetro } = medir();
     poligono.bindPopup(`<strong>${nombrePoligono}</strong><br>Área: ${area.toFixed(1)} m²<br>Perímetro: ${perimetro.toFixed(1)} m`).openPopup();
     mostrarInfo(`Polígono "${nombrePoligono}" recuperado (${puntos.length} vértices). Área: ${area.toFixed(1)} m².`);
