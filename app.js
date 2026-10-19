@@ -215,21 +215,6 @@ function tieneAutointerseccion() {
 
 // Reto #3: Nombre del polígono en propiedades GeoJSON
 let nombrePoligono = 'Mi polígono';
-function pedirNombre() {
-  const nombre = prompt('Nombre del polígono:', nombrePoligono);
-  if (nombre && nombre.trim()) {
-    nombrePoligono = nombre.trim();
-    if (poligono) {
-      // Actualizar popup si ya existe
-      const geo = aGeoJSON();
-      const { area, perimetro } = medir();
-      poligono.bindPopup(`<strong>${nombrePoligono}</strong><br>Área: ${area.toFixed(1)} m²<br>Perímetro: ${perimetro.toFixed(1)} m`).openPopup();
-    }
-    mostrarInfo(`Nombre guardado: ${nombrePoligono}`);
-  }
-}
-// El listener original del btnCerrar se mantiene; añadimos la lógica de nombre al cerrar
-const originalCerrarPoligono = cerrarPoligono;
 
 // Reto #3: aGeoJSON incluye nombre
 function aGeoJSON() {
