@@ -1,3 +1,11 @@
+/**
+ * Polígonos sobre un mapa con geolocalización.
+ *
+ * @version 1.0.0
+ * @author Juan Pablo Olave Muñoz (donpedromz) - base y retos 2, 4, 6 y 8
+ * @author Johan Andrés Villada (VilladaV) - retos 1, 3, 5, 7 y 9
+ */
+
 const CENTRO_INICIAL = [5.0689, -75.5174]; // Manizales, por si falla la ubicación
 const COLORES = { guia: '#e67e22', error: '#e74c3c' };
 const OPCIONES_UBICACION = { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 };
