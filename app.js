@@ -1,5 +1,6 @@
 const CENTRO_INICIAL = [5.0689, -75.5174]; // Manizales, por si falla la ubicación
 const COLORES = { guia: '#e67e22', error: '#e74c3c' };
+const OPCIONES_UBICACION = { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 };
 
 const mapa = L.map('mapa').setView(CENTRO_INICIAL, 15);
 
@@ -26,35 +27,44 @@ function pintarUbicacion(punto, accuracy) {
   circuloPrecision = L.circle(punto, { radius: accuracy, fillOpacity: 0.1 }).addTo(mapa);
 }
 
-function ubicarUsuario() {
+// La geolocalización solo ofrece callbacks; la envolvemos para poder usar await.
+function pedirUbicacion() {
+  return new Promise((resolve, reject) => {
+    navigator.geolocation.getCurrentPosition(resolve, reject, OPCIONES_UBICACION);
+  });
+}
+
+const MENSAJES_ERROR_UBICACION = {
+  1: 'Permiso denegado. Activa la ubicación en el navegador.',
+  2: 'No se pudo determinar la ubicación.',
+  3: 'Se agotó el tiempo de espera.'
+};
+
+function mensajeDeErrorUbicacion(error) {
+  return MENSAJES_ERROR_UBICACION[error.code] || 'Error desconocido.';
+}
+
+async function ubicarUsuario() {
   if (!('geolocation' in navigator)) {
     mostrarInfo('Tu navegador no soporta geolocalización.', 'aviso');
     return;
   }
   mostrarInfo('Buscando tu ubicación...');
 
-  navigator.geolocation.getCurrentPosition(
-    (pos) => {
-      const { latitude, longitude, accuracy } = pos.coords;
-      const punto = [latitude, longitude];
+  try {
+    const pos = await pedirUbicacion();
+    const { latitude, longitude, accuracy } = pos.coords;
+    const punto = [latitude, longitude];
 
-      pintarUbicacion(punto, accuracy);
-      marcadorUsuario.openPopup();
-      mapa.setView(punto, 17);
-      mostrarInfo(`Ubicación encontrada (precisión: ${Math.round(accuracy)} m). Haz clic para dibujar.`);
-      // Reto #7: comprobar dentro/fuera al ubicar
-      if (poligono) comprobarDentroFuera(punto);
-    },
-    (err) => {
-      const mensajes = {
-        1: 'Permiso denegado. Activa la ubicación en el navegador.',
-        2: 'No se pudo determinar la ubicación.',
-        3: 'Se agotó el tiempo de espera.'
-      };
-      mostrarInfo(mensajes[err.code] || 'Error desconocido.', 'aviso');
-    },
-    { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
-  );
+    pintarUbicacion(punto, accuracy);
+    marcadorUsuario.openPopup();
+    mapa.setView(punto, 17);
+    mostrarInfo(`Ubicación encontrada (precisión: ${Math.round(accuracy)} m). Haz clic para dibujar.`);
+    // Reto #7: comprobar dentro/fuera al ubicar
+    if (poligono) comprobarDentroFuera(punto);
+  } catch (err) {
+    mostrarInfo(mensajeDeErrorUbicacion(err), 'aviso');
+  }
 }
 
 document.getElementById('btnUbicar').addEventListener('click', ubicarUsuario);
@@ -90,8 +100,8 @@ function alternarRastreo() {
         mostrarInfo(`Rastreando… (precisión: ${Math.round(accuracy)} m). Cierra un polígono para activar la geocerca.`);
       }
     },
-    () => mostrarInfo('No se pudo obtener tu ubicación. Revisa el permiso e inténtalo de nuevo.', 'aviso'),
-    { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+    (err) => mostrarInfo(mensajeDeErrorUbicacion(err), 'aviso'),
+    OPCIONES_UBICACION
   );
 
   boton.textContent = 'Detener rastreo';
@@ -139,25 +149,24 @@ function agregarVertice(lat, lng) {
 }
 
 // Reto #4: Agregar un vértice con la ubicación actual
-function agregarPuntoGPS() {
+async function agregarPuntoGPS() {
   if (!('geolocation' in navigator)) {
     mostrarInfo('Tu navegador no soporta geolocalización.', 'aviso');
     return;
   }
   mostrarInfo('Buscando tu ubicación para agregar el vértice...');
 
-  navigator.geolocation.getCurrentPosition(
-    (pos) => {
-      const { latitude, longitude, accuracy } = pos.coords;
-      agregarVertice(latitude, longitude);
-      // El aviso de auto-intersección importa más que el dato de precisión.
-      if (!tieneAutointerseccion()) {
-        mostrarInfo(`Vértice agregado desde tu ubicación (precisión: ${Math.round(accuracy)} m).`);
-      }
-    },
-    () => mostrarInfo('No se pudo obtener tu ubicación. Revisa el permiso e inténtalo de nuevo.', 'aviso'),
-    { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
-  );
+  try {
+    const pos = await pedirUbicacion();
+    const { latitude, longitude, accuracy } = pos.coords;
+    agregarVertice(latitude, longitude);
+    // El aviso de auto-intersección importa más que el dato de precisión.
+    if (!tieneAutointerseccion()) {
+      mostrarInfo(`Vértice agregado desde tu ubicación (precisión: ${Math.round(accuracy)} m).`);
+    }
+  } catch (err) {
+    mostrarInfo(mensajeDeErrorUbicacion(err), 'aviso');
+  }
 }
 
 document.getElementById('btnPuntoGPS').addEventListener('click', agregarPuntoGPS);
@@ -415,43 +424,54 @@ function exportar() {
 document.getElementById('btnExportar').addEventListener('click', exportar);
 
 // Reto #6: Importar un archivo GeoJSON y dibujarlo en el mapa
-function importarGeoJSON(archivo) {
-  const lector = new FileReader();
+// FileReader solo ofrece callbacks; lo envolvemos para poder usar await.
+function leerArchivo(archivo) {
+  return new Promise((resolve, reject) => {
+    const lector = new FileReader();
+    lector.onload = () => resolve(lector.result);
+    lector.onerror = () => reject(new Error('No se pudo leer el archivo.'));
+    lector.readAsText(archivo);
+  });
+}
 
-  lector.onload = () => {
-    let formas;
-    try {
-      formas = L.geoJSON(JSON.parse(lector.result)).getLayers();
-    } catch (e) {
-      mostrarInfo(`No se pudo importar "${archivo.name}": no es un GeoJSON válido.`, 'aviso');
-      return;
-    }
+async function importarGeoJSON(archivo) {
+  let texto;
+  try {
+    texto = await leerArchivo(archivo);
+  } catch {
+    mostrarInfo(`No se pudo leer el archivo "${archivo.name}".`, 'aviso');
+    return;
+  }
 
-    const forma = formas[0];
-    if (!(forma instanceof L.Polygon)) {
-      mostrarInfo(`No se pudo importar "${archivo.name}": no contiene ningún polígono.`, 'aviso');
-      return;
-    }
+  let formas;
+  try {
+    formas = L.geoJSON(JSON.parse(texto)).getLayers();
+  } catch {
+    mostrarInfo(`No se pudo importar "${archivo.name}": no es un GeoJSON válido.`, 'aviso');
+    return;
+  }
 
-    const anillo = forma.getLatLngs()[0].map((p) => [p.lat, p.lng]);
-    const primero = anillo[0];
-    const ultimo = anillo[anillo.length - 1];
-    // El anillo de un GeoJSON repite el primer punto al final.
-    if (anillo.length > 3 && primero[0] === ultimo[0] && primero[1] === ultimo[1]) anillo.pop();
-    if (anillo.length < 3) {
-      mostrarInfo(`No se pudo importar "${archivo.name}": necesita al menos 3 vértices.`, 'aviso');
-      return;
-    }
+  const forma = formas[0];
+  if (!(forma instanceof L.Polygon)) {
+    mostrarInfo(`No se pudo importar "${archivo.name}": no contiene ningún polígono.`, 'aviso');
+    return;
+  }
 
-    limpiar();
-    const propiedades = forma.feature && forma.feature.properties;
-    if (propiedades && propiedades.nombre) nombrePoligono = propiedades.nombre;
-    anillo.forEach(([lat, lng]) => agregarVertice(lat, lng));
-    cerrarPoligono();
-  };
+  const anillo = forma.getLatLngs()[0].map((p) => [p.lat, p.lng]);
+  const primero = anillo[0];
+  const ultimo = anillo[anillo.length - 1];
+  // El anillo de un GeoJSON repite el primer punto al final.
+  if (anillo.length > 3 && primero[0] === ultimo[0] && primero[1] === ultimo[1]) anillo.pop();
+  if (anillo.length < 3) {
+    mostrarInfo(`No se pudo importar "${archivo.name}": necesita al menos 3 vértices.`, 'aviso');
+    return;
+  }
 
-  lector.onerror = () => mostrarInfo(`No se pudo leer el archivo "${archivo.name}".`, 'aviso');
-  lector.readAsText(archivo);
+  limpiar();
+  const propiedades = forma.feature && forma.feature.properties;
+  if (propiedades && propiedades.nombre) nombrePoligono = propiedades.nombre;
+  anillo.forEach(([lat, lng]) => agregarVertice(lat, lng));
+  cerrarPoligono();
 }
 
 document.getElementById('archivoGeoJSON').addEventListener('change', (e) => {
