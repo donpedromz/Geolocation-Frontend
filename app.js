@@ -424,43 +424,54 @@ function exportar() {
 document.getElementById('btnExportar').addEventListener('click', exportar);
 
 // Reto #6: Importar un archivo GeoJSON y dibujarlo en el mapa
-function importarGeoJSON(archivo) {
-  const lector = new FileReader();
+// FileReader solo ofrece callbacks; lo envolvemos para poder usar await.
+function leerArchivo(archivo) {
+  return new Promise((resolve, reject) => {
+    const lector = new FileReader();
+    lector.onload = () => resolve(lector.result);
+    lector.onerror = () => reject(new Error('No se pudo leer el archivo.'));
+    lector.readAsText(archivo);
+  });
+}
 
-  lector.onload = () => {
-    let formas;
-    try {
-      formas = L.geoJSON(JSON.parse(lector.result)).getLayers();
-    } catch (e) {
-      mostrarInfo(`No se pudo importar "${archivo.name}": no es un GeoJSON válido.`, 'aviso');
-      return;
-    }
+async function importarGeoJSON(archivo) {
+  let texto;
+  try {
+    texto = await leerArchivo(archivo);
+  } catch {
+    mostrarInfo(`No se pudo leer el archivo "${archivo.name}".`, 'aviso');
+    return;
+  }
 
-    const forma = formas[0];
-    if (!(forma instanceof L.Polygon)) {
-      mostrarInfo(`No se pudo importar "${archivo.name}": no contiene ningún polígono.`, 'aviso');
-      return;
-    }
+  let formas;
+  try {
+    formas = L.geoJSON(JSON.parse(texto)).getLayers();
+  } catch {
+    mostrarInfo(`No se pudo importar "${archivo.name}": no es un GeoJSON válido.`, 'aviso');
+    return;
+  }
 
-    const anillo = forma.getLatLngs()[0].map((p) => [p.lat, p.lng]);
-    const primero = anillo[0];
-    const ultimo = anillo[anillo.length - 1];
-    // El anillo de un GeoJSON repite el primer punto al final.
-    if (anillo.length > 3 && primero[0] === ultimo[0] && primero[1] === ultimo[1]) anillo.pop();
-    if (anillo.length < 3) {
-      mostrarInfo(`No se pudo importar "${archivo.name}": necesita al menos 3 vértices.`, 'aviso');
-      return;
-    }
+  const forma = formas[0];
+  if (!(forma instanceof L.Polygon)) {
+    mostrarInfo(`No se pudo importar "${archivo.name}": no contiene ningún polígono.`, 'aviso');
+    return;
+  }
 
-    limpiar();
-    const propiedades = forma.feature && forma.feature.properties;
-    if (propiedades && propiedades.nombre) nombrePoligono = propiedades.nombre;
-    anillo.forEach(([lat, lng]) => agregarVertice(lat, lng));
-    cerrarPoligono();
-  };
+  const anillo = forma.getLatLngs()[0].map((p) => [p.lat, p.lng]);
+  const primero = anillo[0];
+  const ultimo = anillo[anillo.length - 1];
+  // El anillo de un GeoJSON repite el primer punto al final.
+  if (anillo.length > 3 && primero[0] === ultimo[0] && primero[1] === ultimo[1]) anillo.pop();
+  if (anillo.length < 3) {
+    mostrarInfo(`No se pudo importar "${archivo.name}": necesita al menos 3 vértices.`, 'aviso');
+    return;
+  }
 
-  lector.onerror = () => mostrarInfo(`No se pudo leer el archivo "${archivo.name}".`, 'aviso');
-  lector.readAsText(archivo);
+  limpiar();
+  const propiedades = forma.feature && forma.feature.properties;
+  if (propiedades && propiedades.nombre) nombrePoligono = propiedades.nombre;
+  anillo.forEach(([lat, lng]) => agregarVertice(lat, lng));
+  cerrarPoligono();
 }
 
 document.getElementById('archivoGeoJSON').addEventListener('change', (e) => {
