@@ -195,7 +195,7 @@ function cerrarPoligono() {
     }
   }
 
-  poligono = L.polygon(puntos, { color: '#27ae60', fillOpacity: 0.35 }).addTo(mapa);
+  poligono = L.polygon(puntos, { color: colorPoligono, fillOpacity: 0.35 }).addTo(mapa);
   lineaGuia.setLatLngs([]);
   mapa.fitBounds(poligono.getBounds());
 
@@ -249,6 +249,12 @@ function limpiar() {
 
 document.getElementById('btnDeshacer').addEventListener('click', deshacerPunto);
 document.getElementById('btnLimpiar').addEventListener('click', limpiar);
+
+let colorPoligono = document.getElementById('colorPoligono').value;
+document.getElementById('colorPoligono').addEventListener('input', (e) => {
+  colorPoligono = e.target.value;
+  if (poligono) poligono.setStyle({ color: colorPoligono });
+});
 
 // Reto #5: Guardar y recuperar de localStorage
 function guardarEnLocalStorage() {
