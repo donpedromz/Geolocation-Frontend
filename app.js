@@ -14,6 +14,14 @@ function mostrarInfo(texto) {
   document.getElementById('info').textContent = texto;
 }
 
+function pintarUbicacion(punto, accuracy) {
+  if (marcadorUsuario) mapa.removeLayer(marcadorUsuario);
+  if (circuloPrecision) mapa.removeLayer(circuloPrecision);
+
+  marcadorUsuario = L.marker(punto).addTo(mapa).bindPopup('Estás aquí');
+  circuloPrecision = L.circle(punto, { radius: accuracy, fillOpacity: 0.1 }).addTo(mapa);
+}
+
 function ubicarUsuario() {
   if (!('geolocation' in navigator)) {
     mostrarInfo('Tu navegador no soporta geolocalización.');
@@ -26,11 +34,8 @@ function ubicarUsuario() {
       const { latitude, longitude, accuracy } = pos.coords;
       const punto = [latitude, longitude];
 
-      if (marcadorUsuario) mapa.removeLayer(marcadorUsuario);
-      if (circuloPrecision) mapa.removeLayer(circuloPrecision);
-
-      marcadorUsuario = L.marker(punto).addTo(mapa).bindPopup('Estás aquí').openPopup();
-      circuloPrecision = L.circle(punto, { radius: accuracy, fillOpacity: 0.1 }).addTo(mapa);
+      pintarUbicacion(punto, accuracy);
+      marcadorUsuario.openPopup();
       mapa.setView(punto, 17);
       mostrarInfo(`Ubicación encontrada (precisión: ${Math.round(accuracy)} m). Haz clic para dibujar.`);
       // Reto #7: comprobar dentro/fuera al ubicar
