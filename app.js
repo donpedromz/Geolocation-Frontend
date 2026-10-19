@@ -21,12 +21,26 @@ let marcadorUsuario = null;
 let circuloPrecision = null;
 let vigilancia = null; // id del watchPosition activo (null = sin rastreo)
 
+/**
+ * Escribe el mensaje de estado en la barra de información.
+ *
+ * @author Juan Pablo Olave Muñoz (donpedromz)
+ * @param {string} texto - Mensaje para el usuario.
+ * @param {'aviso'|'ok'} [evento] - Colorea el mensaje (rojo de aviso, verde de regreso).
+ */
 function mostrarInfo(texto, evento) {
   const info = document.getElementById('info');
   info.textContent = texto;
   info.className = evento ? `info-${evento}` : '';
 }
 
+/**
+ * Dibuja o mueve el marcador del usuario y su círculo de precisión.
+ *
+ * @author Juan Pablo Olave Muñoz (donpedromz)
+ * @param {[number, number]} punto - Latitud y longitud del usuario.
+ * @param {number} accuracy - Precisión en metros, que se usa como radio del círculo.
+ */
 function pintarUbicacion(punto, accuracy) {
   if (marcadorUsuario) mapa.removeLayer(marcadorUsuario);
   if (circuloPrecision) mapa.removeLayer(circuloPrecision);
@@ -35,7 +49,14 @@ function pintarUbicacion(punto, accuracy) {
   circuloPrecision = L.circle(punto, { radius: accuracy, fillOpacity: 0.1 }).addTo(mapa);
 }
 
-// La geolocalización solo ofrece callbacks; la envolvemos para poder usar await.
+/**
+ * Pide la ubicación actual y devuelve una promesa con la posición.
+ *
+ * La geolocalización solo ofrece callbacks; se envuelve aquí para poder usar await.
+ *
+ * @author Juan Pablo Olave Muñoz (donpedromz)
+ * @returns {Promise<GeolocationPosition>} Posición actual del usuario.
+ */
 function pedirUbicacion() {
   return new Promise((resolve, reject) => {
     navigator.geolocation.getCurrentPosition(resolve, reject, OPCIONES_UBICACION);
@@ -48,10 +69,25 @@ const MENSAJES_ERROR_UBICACION = {
   3: 'Se agotó el tiempo de espera.'
 };
 
+/**
+ * Traduce el código de error de la geolocalización a un mensaje para el usuario.
+ *
+ * @author Juan Pablo Olave Muñoz (donpedromz)
+ * @param {GeolocationPositionError} error - Error entregado por la API.
+ * @returns {string} Mensaje del código, o uno genérico si es desconocido.
+ */
 function mensajeDeErrorUbicacion(error) {
   return MENSAJES_ERROR_UBICACION[error.code] || 'Error desconocido.';
 }
 
+/**
+ * Ubica al usuario: pinta el marcador, centra el mapa y comprueba si quedó dentro o
+ * fuera del polígono (reto #7).
+ *
+ * @author Juan Pablo Olave Muñoz (donpedromz)
+ * @author Johan Andrés Villada (VilladaV) - reto #7
+ * @returns {Promise<void>}
+ */
 async function ubicarUsuario() {
   if (!('geolocation' in navigator)) {
     mostrarInfo('Tu navegador no soporta geolocalización.', 'aviso');
@@ -78,7 +114,11 @@ async function ubicarUsuario() {
 document.getElementById('btnUbicar').addEventListener('click', ubicarUsuario);
 ubicarUsuario();
 
-// Reto #8: Rastrear la ubicación en tiempo real
+/**
+ * Arranca o detiene el rastreo de la ubicación en tiempo real (reto #8).
+ *
+ * @author Juan Pablo Olave Muñoz (donpedromz)
+ */
 function alternarRastreo() {
   const boton = document.getElementById('btnRastrear');
 
@@ -128,6 +168,14 @@ mapa.on('click', (e) => {
   agregarVertice(lat, lng);
 });
 
+/**
+ * Agrega un vértice al polígono en construcción.
+ *
+ * @author Juan Pablo Olave Muñoz (donpedromz)
+ * @author Johan Andrés Villada (VilladaV) - retos #1 (tabla) y #9 (auto-intersección)
+ * @param {number} lat - Latitud del vértice.
+ * @param {number} lng - Longitud del vértice.
+ */
 function agregarVertice(lat, lng) {
   if (poligono) return; // si ya está cerrado, no se agregan más puntos
 
@@ -156,7 +204,12 @@ function agregarVertice(lat, lng) {
   }
 }
 
-// Reto #4: Agregar un vértice con la ubicación actual
+/**
+ * Agrega un vértice con la ubicación actual del usuario (reto #4).
+ *
+ * @author Juan Pablo Olave Muñoz (donpedromz)
+ * @returns {Promise<void>}
+ */
 async function agregarPuntoGPS() {
   if (!('geolocation' in navigator)) {
     mostrarInfo('Tu navegador no soporta geolocalización.', 'aviso');
@@ -179,6 +232,11 @@ async function agregarPuntoGPS() {
 
 document.getElementById('btnPuntoGPS').addEventListener('click', agregarPuntoGPS);
 
+/**
+ * Habilita o deshabilita los botones según el estado del dibujo.
+ *
+ * @author Juan Pablo Olave Muñoz (donpedromz)
+ */
 function actualizarBotones() {
   document.getElementById('btnCerrar').disabled = puntos.length < 3 || poligono !== null;
   document.getElementById('btnDeshacer').disabled = puntos.length === 0 || poligono !== null;
@@ -186,7 +244,11 @@ function actualizarBotones() {
   document.getElementById('btnPuntoGPS').disabled = poligono !== null;
 }
 
-// Reto #1: Actualizar tabla de vértices con 6 decimales
+/**
+ * Llena la tabla lateral con los vértices actuales, con 6 decimales (reto #1).
+ *
+ * @author Johan Andrés Villada (VilladaV)
+ */
 function actualizarTablaVertices() {
   const tbody = document.getElementById('tbodyVertices');
   const mensajeVacio = document.getElementById('sinVertices');
@@ -213,7 +275,12 @@ function actualizarTablaVertices() {
   });
 }
 
-// Reto #9: Auto-intersección con turf.kinks (ya existe en main)
+/**
+ * Comprueba con turf.kinks si el trazo se cruza consigo mismo (reto #9).
+ *
+ * @author Johan Andrés Villada (VilladaV)
+ * @returns {Object|null} Los cruces encontrados, o null si no hay ninguno.
+ */
 function tieneAutointerseccion() {
   if (puntos.length < 4) return null;
   const geo = aGeoJSON();
@@ -224,7 +291,13 @@ function tieneAutointerseccion() {
 // Reto #3: Nombre del polígono en propiedades GeoJSON
 let nombrePoligono = 'Mi polígono';
 
-// Reto #3: aGeoJSON incluye nombre
+/**
+ * Convierte los puntos dibujados en un polígono GeoJSON cerrado, con el nombre en las
+ * propiedades (reto #3).
+ *
+ * @author Johan Andrés Villada (VilladaV)
+ * @returns {Object} Polígono GeoJSON.
+ */
 function aGeoJSON() {
   const anillo = puntos.map(([lat, lng]) => [lng, lat]);
   anillo.push(anillo[0]); // cerrar el anillo
@@ -234,6 +307,12 @@ function aGeoJSON() {
   });
 }
 
+/**
+ * Calcula el área y el perímetro del polígono actual.
+ *
+ * @author Juan Pablo Olave Muñoz (donpedromz)
+ * @returns {{area: number, perimetro: number}} Área en m² y perímetro en metros.
+ */
 function medir() {
   const geo = aGeoJSON();
   const area = turf.area(geo); // metros cuadrados
@@ -241,7 +320,12 @@ function medir() {
   return { area, perimetro };
 }
 
-// Reto #7: Comprobar si usuario está dentro/fuera del polígono
+/**
+ * Dice si el usuario está dentro o fuera del polígono y colorea su marcador (reto #7).
+ *
+ * @author Johan Andrés Villada (VilladaV)
+ * @param {[number, number]} puntoUsuario - Latitud y longitud del usuario.
+ */
 function comprobarDentroFuera(puntoUsuario) {
   if (!poligono) return;
   const geo = aGeoJSON();
@@ -259,6 +343,12 @@ function comprobarDentroFuera(puntoUsuario) {
 // Reto #8: Avisar cuando el usuario sale del polígono (geocerca)
 let geocercaMedida = { poligono: null, dentro: null };
 
+/**
+ * Avisa cuando el usuario cruza el borde del polígono, solo al cambiar de lado (reto #8).
+ *
+ * @author Juan Pablo Olave Muñoz (donpedromz)
+ * @param {[number, number]} punto - Latitud y longitud del usuario.
+ */
 function avisarSalidaDelPoligono(punto) {
   // Si el polígono es otro, la medida anterior no cuenta.
   if (geocercaMedida.poligono !== poligono) geocercaMedida = { poligono: poligono, dentro: null };
@@ -276,7 +366,13 @@ function avisarSalidaDelPoligono(punto) {
   geocercaMedida.dentro = dentro;
 }
 
-// Reto #3, #5, #7: nuevo cerrarPoligono que extiende el original
+/**
+ * Cierra el polígono con los puntos dibujados: pide el nombre, lo pinta con las medidas,
+ * lo guarda y comprueba dónde quedó el usuario.
+ *
+ * @author Juan Pablo Olave Muñoz (donpedromz)
+ * @author Johan Andrés Villada (VilladaV) - retos #3 (nombre), #5 (guardar), #7 (dentro/fuera) y #9 (bloqueo por cruce)
+ */
 function cerrarPoligono() {
   // Reto #9: bloquear si hay auto-intersección (ya existe)
   const kinks = tieneAutointerseccion();
@@ -317,6 +413,12 @@ function cerrarPoligono() {
 document.getElementById('btnCerrar').onclick = null;
 document.getElementById('btnCerrar').addEventListener('click', cerrarPoligono);
 
+/**
+ * Quita el último vértice dibujado.
+ *
+ * @author Juan Pablo Olave Muñoz (donpedromz)
+ * @author Johan Andrés Villada (VilladaV) - retos #1 (tabla) y #9 (color de la línea)
+ */
 function deshacerPunto() {
   puntos.pop();
   mapa.removeLayer(vertices.pop());
@@ -328,6 +430,12 @@ function deshacerPunto() {
   mostrarInfo(`${puntos.length} vértice(s).`);
 }
 
+/**
+ * Borra el dibujo y deja el mapa listo para empezar de nuevo.
+ *
+ * @author Juan Pablo Olave Muñoz (donpedromz)
+ * @author Johan Andrés Villada (VilladaV) - retos #1 (tabla) y #5 (localStorage)
+ */
 function limpiar() {
   puntos = [];
   vertices.forEach((v) => mapa.removeLayer(v));
@@ -349,13 +457,18 @@ function limpiar() {
 document.getElementById('btnDeshacer').addEventListener('click', deshacerPunto);
 document.getElementById('btnLimpiar').addEventListener('click', limpiar);
 
+// Reto #2: el color elegido se aplica al polígono ya cerrado.
 let colorPoligono = document.getElementById('colorPoligono').value;
 document.getElementById('colorPoligono').addEventListener('input', (e) => {
   colorPoligono = e.target.value;
   if (poligono) poligono.setStyle({ color: colorPoligono });
 });
 
-// Reto #5: Guardar y recuperar de localStorage
+/**
+ * Guarda el polígono cerrado en localStorage (reto #5).
+ *
+ * @author Johan Andrés Villada (VilladaV)
+ */
 function guardarEnLocalStorage() {
   const datos = {
     puntos: puntos,
@@ -366,6 +479,12 @@ function guardarEnLocalStorage() {
   localStorage.setItem('poligonoGuardado', JSON.stringify(datos));
 }
 
+/**
+ * Recupera el polígono guardado y lo vuelve a dibujar al abrir la página (reto #5).
+ *
+ * @author Johan Andrés Villada (VilladaV)
+ * @returns {boolean} true si se recuperó un polígono.
+ */
 function cargarDeLocalStorage() {
   const guardado = localStorage.getItem('poligonoGuardado');
   if (!guardado) return false;
@@ -404,6 +523,11 @@ function cargarDeLocalStorage() {
 cargarDeLocalStorage();
 actualizarTablaVertices(); // Reto #1: actualizar tabla al cargar
 
+/**
+ * Descarga el polígono actual como archivo GeoJSON.
+ *
+ * @author Juan Pablo Olave Muñoz (donpedromz)
+ */
 function exportar() {
   const texto = JSON.stringify(aGeoJSON(), null, 2);
   const blob = new Blob([texto], { type: 'application/geo+json' });
@@ -416,8 +540,15 @@ function exportar() {
 
 document.getElementById('btnExportar').addEventListener('click', exportar);
 
-// Reto #6: Importar un archivo GeoJSON y dibujarlo en el mapa
-// FileReader solo ofrece callbacks; lo envolvemos para poder usar await.
+/**
+ * Lee un archivo de texto y devuelve una promesa con su contenido.
+ *
+ * FileReader solo ofrece callbacks; se envuelve aquí para poder usar await.
+ *
+ * @author Juan Pablo Olave Muñoz (donpedromz)
+ * @param {File} archivo - Archivo que se va a leer.
+ * @returns {Promise<string>} Contenido del archivo.
+ */
 function leerArchivo(archivo) {
   return new Promise((resolve, reject) => {
     const lector = new FileReader();
@@ -427,6 +558,13 @@ function leerArchivo(archivo) {
   });
 }
 
+/**
+ * Importa un archivo GeoJSON y lo dibuja como polígono cerrado (reto #6).
+ *
+ * @author Juan Pablo Olave Muñoz (donpedromz)
+ * @param {File} archivo - Archivo elegido por el usuario.
+ * @returns {Promise<void>}
+ */
 async function importarGeoJSON(archivo) {
   let texto;
   try {
