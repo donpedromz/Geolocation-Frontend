@@ -376,6 +376,8 @@ function importarGeoJSON(archivo) {
     }
 
     limpiar();
+    const propiedades = forma.feature && forma.feature.properties;
+    if (propiedades && propiedades.nombre) nombrePoligono = propiedades.nombre;
     anillo.forEach(([lat, lng]) => agregarVertice(lat, lng));
     cerrarPoligono();
   };
