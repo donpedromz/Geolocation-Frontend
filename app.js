@@ -9,9 +9,12 @@ L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
 
 let marcadorUsuario = null;
 let circuloPrecision = null;
+let vigilancia = null; // id del watchPosition activo (null = sin rastreo)
 
-function mostrarInfo(texto) {
-  document.getElementById('info').textContent = texto;
+function mostrarInfo(texto, evento) {
+  const info = document.getElementById('info');
+  info.textContent = texto;
+  info.className = evento ? `info-${evento}` : '';
 }
 
 function pintarUbicacion(punto, accuracy) {
@@ -55,6 +58,46 @@ function ubicarUsuario() {
 
 document.getElementById('btnUbicar').addEventListener('click', ubicarUsuario);
 ubicarUsuario();
+
+// Reto #8: Rastrear la ubicación en tiempo real
+function alternarRastreo() {
+  const boton = document.getElementById('btnRastrear');
+
+  if (vigilancia !== null) {
+    navigator.geolocation.clearWatch(vigilancia);
+    vigilancia = null;
+    boton.textContent = 'Rastrear ubicación';
+    mostrarInfo('Rastreo detenido.');
+    return;
+  }
+
+  if (!('geolocation' in navigator)) {
+    mostrarInfo('Tu navegador no soporta geolocalización.');
+    return;
+  }
+
+  vigilancia = navigator.geolocation.watchPosition(
+    (pos) => {
+      const { latitude, longitude, accuracy } = pos.coords;
+      const punto = [latitude, longitude];
+
+      pintarUbicacion(punto, accuracy);
+      if (poligono) {
+        comprobarDentroFuera(punto);
+        avisarSalidaDelPoligono(punto);
+      } else {
+        mostrarInfo(`Rastreando… (precisión: ${Math.round(accuracy)} m). Cierra un polígono para activar la geocerca.`);
+      }
+    },
+    () => mostrarInfo('No se pudo obtener tu ubicación. Revisa el permiso e inténtalo de nuevo.'),
+    { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+  );
+
+  boton.textContent = 'Detener rastreo';
+  mostrarInfo('Rastreando tu ubicación…');
+}
+
+document.getElementById('btnRastrear').addEventListener('click', alternarRastreo);
 
 let puntos = [];     // array de [lat, lng]
 let vertices = [];   // marcadores visibles de cada vértice
@@ -209,6 +252,26 @@ function comprobarDentroFuera(puntoUsuario) {
     const icono = L.divIcon({ className: 'custom-marker', html: `<div style="background:${color};width:12px;height:12px;border-radius:50%;border:2px solid white;"></div>`, iconSize: [12, 12] });
     marcadorUsuario.setIcon(icono);
   }
+}
+
+// Reto #8: Avisar cuando el usuario sale del polígono (geocerca)
+let geocercaMedida = { poligono: null, dentro: null };
+
+function avisarSalidaDelPoligono(punto) {
+  // Si el polígono es otro, la medida anterior no cuenta.
+  if (geocercaMedida.poligono !== poligono) geocercaMedida = { poligono: poligono, dentro: null };
+
+  const geo = aGeoJSON();
+  const dentro = turf.booleanPointInPolygon(turf.point([punto[1], punto[0]]), geo);
+  // Avisar solo al cambiar de lado, no en cada actualización.
+  if (geocercaMedida.dentro !== null && dentro !== geocercaMedida.dentro) {
+    if (dentro) {
+      mostrarInfo(`Volviste a entrar al polígono "${nombrePoligono}".`, 'ok');
+    } else {
+      mostrarInfo(`Saliste del polígono "${nombrePoligono}".`, 'aviso');
+    }
+  }
+  geocercaMedida.dentro = dentro;
 }
 
 // Reto #3, #5, #7: nuevo cerrarPoligono que extiende el original

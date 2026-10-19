@@ -33,6 +33,23 @@ button:disabled { opacity: .5; cursor: not-allowed; }
   margin-right: 6px;
 }
 #info { margin: 8px 0 0; font-size: .9rem; }
+#info.info-aviso,
+#info.info-ok {
+  display: inline-block;
+  padding: 4px 10px;
+  border-radius: 4px;
+  font-weight: 600;
+}
+#info.info-aviso {
+  background: #8c2f26;
+  border-left: 4px solid #e74c3c;
+  color: #ffe6e2;
+}
+#info.info-ok {
+  background: #14532d;
+  border-left: 4px solid #27ae60;
+  color: #c6f6d5;
+}
 
 .contenedor-principal {
   display: flex;
