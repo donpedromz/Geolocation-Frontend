@@ -1,0 +1,4 @@
+{
+  "type": "Feature",
+  "properties": { "nombre": "Este archivo está roto a propósito" },
+  "geometry": { "type": "Polygon", "coordinates": [[[-75.5188, 5.0680], [-75.5166, 5.0680]]]]

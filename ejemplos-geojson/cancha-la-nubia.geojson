@@ -1,0 +1,19 @@
+{
+  "type": "Feature",
+  "properties": {
+    "nombre": "Cancha La Nubia",
+    "deporte": "futbol"
+  },
+  "geometry": {
+    "type": "Polygon",
+    "coordinates": [
+      [
+        [-75.5215, 5.0665],
+        [-75.5185, 5.0669],
+        [-75.5182, 5.0690],
+        [-75.5218, 5.0686],
+        [-75.5215, 5.0665]
+      ]
+    ]
+  }
+}

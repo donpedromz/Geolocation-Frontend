@@ -1,0 +1,15 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "nombre": "Catedral de Manizales"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-75.5174, 5.0689]
+      }
+    }
+  ]
+}

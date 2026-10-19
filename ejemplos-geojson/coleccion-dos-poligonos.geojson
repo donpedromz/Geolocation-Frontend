@@ -1,0 +1,41 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "nombre": "Polígono A (se importa este)"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [-75.5215, 5.0640],
+            [-75.5205, 5.0640],
+            [-75.5205, 5.0648],
+            [-75.5215, 5.0648],
+            [-75.5215, 5.0640]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "nombre": "Polígono B (se ignora)"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [-75.5175, 5.0640],
+            [-75.5165, 5.0640],
+            [-75.5165, 5.0648],
+            [-75.5175, 5.0648],
+            [-75.5175, 5.0640]
+          ]
+        ]
+      }
+    }
+  ]
+}

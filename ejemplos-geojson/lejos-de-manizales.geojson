@@ -1,0 +1,18 @@
+{
+  "type": "Feature",
+  "properties": {
+    "nombre": "Lejos de Manizales (Bogotá)"
+  },
+  "geometry": {
+    "type": "Polygon",
+    "coordinates": [
+      [
+        [-74.0735, 4.7095],
+        [-74.0707, 4.7095],
+        [-74.0707, 4.7125],
+        [-74.0735, 4.7125],
+        [-74.0735, 4.7095]
+      ]
+    ]
+  }
+}
