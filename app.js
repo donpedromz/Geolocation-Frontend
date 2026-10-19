@@ -11,8 +11,10 @@ let marcadorUsuario = null;
 let circuloPrecision = null;
 let vigilancia = null; // id del watchPosition activo (null = sin rastreo)
 
-function mostrarInfo(texto) {
-  document.getElementById('info').textContent = texto;
+function mostrarInfo(texto, evento) {
+  const info = document.getElementById('info');
+  info.textContent = texto;
+  info.className = evento ? `info-${evento}` : '';
 }
 
 function pintarUbicacion(punto, accuracy) {
@@ -82,6 +84,7 @@ function alternarRastreo() {
       pintarUbicacion(punto, accuracy);
       if (poligono) {
         comprobarDentroFuera(punto);
+        avisarSalidaDelPoligono(punto);
       } else {
         mostrarInfo(`Rastreando… (precisión: ${Math.round(accuracy)} m). Cierra un polígono para activar la geocerca.`);
       }
@@ -249,6 +252,26 @@ function comprobarDentroFuera(puntoUsuario) {
     const icono = L.divIcon({ className: 'custom-marker', html: `<div style="background:${color};width:12px;height:12px;border-radius:50%;border:2px solid white;"></div>`, iconSize: [12, 12] });
     marcadorUsuario.setIcon(icono);
   }
+}
+
+// Reto #8: Avisar cuando el usuario sale del polígono (geocerca)
+let geocercaMedida = { poligono: null, dentro: null };
+
+function avisarSalidaDelPoligono(punto) {
+  // Si el polígono es otro, la medida anterior no cuenta.
+  if (geocercaMedida.poligono !== poligono) geocercaMedida = { poligono: poligono, dentro: null };
+
+  const geo = aGeoJSON();
+  const dentro = turf.booleanPointInPolygon(turf.point([punto[1], punto[0]]), geo);
+  // Avisar solo al cambiar de lado, no en cada actualización.
+  if (geocercaMedida.dentro !== null && dentro !== geocercaMedida.dentro) {
+    if (dentro) {
+      mostrarInfo(`Volviste a entrar al polígono "${nombrePoligono}".`, 'ok');
+    } else {
+      mostrarInfo(`Saliste del polígono "${nombrePoligono}".`, 'aviso');
+    }
+  }
+  geocercaMedida.dentro = dentro;
 }
 
 // Reto #3, #5, #7: nuevo cerrarPoligono que extiende el original
