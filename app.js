@@ -261,6 +261,7 @@ function guardarEnLocalStorage() {
   const datos = {
     puntos: puntos,
     nombre: nombrePoligono,
+    color: colorPoligono,
     timestamp: new Date().toISOString()
   };
   localStorage.setItem('poligonoGuardado', JSON.stringify(datos));
@@ -274,6 +275,8 @@ function cargarDeLocalStorage() {
     if (!Array.isArray(datos.puntos) || datos.puntos.length < 3) return false;
     puntos = datos.puntos;
     nombrePoligono = datos.nombre || 'Mi polígono';
+    colorPoligono = datos.color || colorPoligono;
+    document.getElementById('colorPoligono').value = colorPoligono;
     
     // Recrear vértices visibles
     puntos.forEach(([lat, lng]) => {
@@ -283,7 +286,7 @@ function cargarDeLocalStorage() {
     lineaGuia.setLatLngs(puntos);
     
     // Cerrar polígono automáticamente
-    poligono = L.polygon(puntos, { color: '#27ae60', fillOpacity: 0.35 }).addTo(mapa);
+    poligono = L.polygon(puntos, { color: colorPoligono, fillOpacity: 0.35 }).addTo(mapa);
     mapa.fitBounds(poligono.getBounds());
     
     const { area, perimetro } = medir();
