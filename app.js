@@ -57,9 +57,13 @@ let poligono = null;
 const lineaGuia = L.polyline([], { color: '#e67e22', dashArray: '6 6' }).addTo(mapa);
 
 mapa.on('click', (e) => {
+  const { lat, lng } = e.latlng;
+  agregarVertice(lat, lng);
+});
+
+function agregarVertice(lat, lng) {
   if (poligono) return; // si ya está cerrado, no se agregan más puntos
 
-  const { lat, lng } = e.latlng;
   puntos.push([lat, lng]);
 
   const v = L.circleMarker([lat, lng], { radius: 6, color: '#e67e22', fillOpacity: 1 }).addTo(mapa);
@@ -83,7 +87,7 @@ mapa.on('click', (e) => {
   if (!tieneAutointerseccion() || puntos.length < 4) {
     mostrarInfo(`${puntos.length} vértice(s). Necesitas al menos 3 para cerrar.`);
   }
-});
+}
 
 function actualizarBotones() {
   document.getElementById('btnCerrar').disabled = puntos.length < 3 || poligono !== null;
