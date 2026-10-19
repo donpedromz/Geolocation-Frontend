@@ -89,10 +89,35 @@ function agregarVertice(lat, lng) {
   }
 }
 
+// Reto #4: Agregar un vértice con la ubicación actual
+function agregarPuntoGPS() {
+  if (!('geolocation' in navigator)) {
+    mostrarInfo('Tu navegador no soporta geolocalización.');
+    return;
+  }
+  mostrarInfo('Buscando tu ubicación para agregar el vértice...');
+
+  navigator.geolocation.getCurrentPosition(
+    (pos) => {
+      const { latitude, longitude, accuracy } = pos.coords;
+      agregarVertice(latitude, longitude);
+      // El aviso de auto-intersección importa más que el dato de precisión.
+      if (!tieneAutointerseccion()) {
+        mostrarInfo(`Vértice agregado desde tu ubicación (precisión: ${Math.round(accuracy)} m).`);
+      }
+    },
+    () => mostrarInfo('No se pudo obtener tu ubicación. Revisa el permiso e inténtalo de nuevo.'),
+    { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+  );
+}
+
+document.getElementById('btnPuntoGPS').addEventListener('click', agregarPuntoGPS);
+
 function actualizarBotones() {
   document.getElementById('btnCerrar').disabled = puntos.length < 3 || poligono !== null;
   document.getElementById('btnDeshacer').disabled = puntos.length === 0 || poligono !== null;
   document.getElementById('btnExportar').disabled = poligono === null;
+  document.getElementById('btnPuntoGPS').disabled = poligono !== null;
 }
 
 // Reto #1: Actualizar tabla de vértices con 6 decimales
