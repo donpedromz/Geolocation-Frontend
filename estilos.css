@@ -89,6 +89,10 @@ button:disabled { opacity: .5; cursor: not-allowed; }
   flex-shrink: 0;
 }
 
+.panel-lateral.oculto {
+  display: none;
+}
+
 .tabla-contenedor {
   overflow-x: auto;
 }
