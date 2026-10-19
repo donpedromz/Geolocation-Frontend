@@ -1,0 +1,18 @@
+{
+  "type": "Feature",
+  "properties": {
+    "nombre": "Mariposa (se cruza)"
+  },
+  "geometry": {
+    "type": "Polygon",
+    "coordinates": [
+      [
+        [-75.5165, 5.0695],
+        [-75.5145, 5.0715],
+        [-75.5165, 5.0715],
+        [-75.5145, 5.0695],
+        [-75.5165, 5.0695]
+      ]
+    ]
+  }
+}
